@@ -104,26 +104,29 @@ public:
     /// @return Index in original sorted order (0 to n), or n if not found
     [[nodiscard]]
     std::size_t search(const T* eytz, std::size_t n, T key) const noexcept {
+        if (n == 0) return 0;
+
         std::size_t k = 1;
+        std::size_t answer_k = 0;  // Best Eytzinger index found (>= key)
 
         while (k <= n) {
             // Prefetch ahead in the tree
             prefetch_ahead(eytz, k, n);
 
-            // Branchless navigation: k = 2k + (eytz[k] < key)
-            // If eytz[k] < key, go right (2k+1), else go left (2k)
-            k = 2 * k + (eytz[k] < key ? 1 : 0);
+            if (eytz[k] >= key) {
+                answer_k = k;       // This could be our answer
+                k = 2 * k;          // Look left for smaller or equal values
+            } else {
+                k = 2 * k + 1;      // Need larger values, go right
+            }
         }
 
-        // k is now at a "virtual" leaf position
-        // Convert back to original sorted index
-        // The position is encoded in the bit pattern of k
+        if (answer_k == 0) {
+            return n;  // Not found, all values < key
+        }
 
-        // Find the first ancestor that went left (has a 0 bit after leading 1s)
-        k >>= static_cast<std::size_t>(__builtin_ffs(static_cast<int>(~k)));
-
-        // Handle edge case: key is larger than all elements
-        return k == 0 ? n : k - 1;
+        // Convert Eytzinger index to sorted index (in-order rank)
+        return eytz_to_sorted(answer_k, n);
     }
 
     /// @brief Lower bound on Eytzinger array, returns pointer for API compatibility
@@ -139,12 +142,12 @@ public:
 
         std::size_t idx = search(eytz, hi, key);
 
-        // Convert Eytzinger index to pointer
-        // Since Eytzinger is 1-indexed, we need to handle this carefully
         if (idx >= hi) {
             return eytz + hi + 1;  // Past end
         }
-        return eytz + idx + 1;  // +1 because Eytzinger is 1-indexed
+        // Find the Eytzinger index for this sorted position
+        // For lower_bound, we return pointer to the value we found
+        return eytz + sorted_to_eytz(idx, hi);
     }
 
 private:
@@ -162,6 +165,92 @@ private:
             __builtin_prefetch(eytz + prefetch_idx + (1 << (PrefetchDepth - 1)), 0, 0);
 #endif
         }
+    }
+
+    /// @brief Compute subtree size for node k in tree of size n
+    static std::size_t subtree_size(std::size_t k, std::size_t n) noexcept {
+        if (k > n) return 0;
+
+        // Find height of tree: floor(log2(n))
+        std::size_t height = 0;
+        for (std::size_t x = n; x > 0; x >>= 1) height++;
+        height--;
+
+        // Level of node k: floor(log2(k))
+        std::size_t level_k = 0;
+        for (std::size_t x = k; x > 0; x >>= 1) level_k++;
+        level_k--;
+
+        // Levels below k
+        std::size_t levels_below = height - level_k;
+
+        // Leftmost and rightmost potential leaves in subtree
+        std::size_t leftmost = k << levels_below;
+        std::size_t rightmost = ((k + 1) << levels_below) - 1;
+
+        // Nodes above the last level in subtree: 2^levels_below - 1
+        std::size_t full_nodes = (1ULL << levels_below) - 1;
+
+        // Count nodes at the last level that exist
+        std::size_t last_level_start = 1ULL << height;
+        std::size_t last_level_end = n;
+
+        // Intersection with [leftmost, rightmost]
+        if (leftmost > last_level_end || rightmost < last_level_start) {
+            // No nodes at last level in this subtree
+            return full_nodes;
+        }
+
+        std::size_t left = (leftmost > last_level_start) ? leftmost : last_level_start;
+        std::size_t right = (rightmost < last_level_end) ? rightmost : last_level_end;
+        std::size_t last_level_count = right - left + 1;
+
+        return full_nodes + last_level_count;
+    }
+
+    /// @brief Convert Eytzinger index to sorted index (in-order rank)
+    static std::size_t eytz_to_sorted(std::size_t k, std::size_t n) noexcept {
+        if (k > n || k == 0) return n;
+
+        // Rank = left subtree size + contributions from ancestors
+        std::size_t rank = subtree_size(2 * k, n);  // Left subtree comes before k
+
+        // Walk up to root, adding contributions from right-child relationships
+        std::size_t node = k;
+        while (node > 1) {
+            std::size_t parent = node / 2;
+            if (node == 2 * parent + 1) {
+                // node is right child of parent
+                // Parent and parent's left subtree come before node
+                rank += 1 + subtree_size(2 * parent, n);
+            }
+            node = parent;
+        }
+
+        return rank;
+    }
+
+    /// @brief Convert sorted index to Eytzinger index (for lower_bound pointer)
+    static std::size_t sorted_to_eytz(std::size_t sorted_idx, std::size_t n) noexcept {
+        // Do in-order traversal to find the k-th element
+        std::size_t count = 0;
+        std::size_t k = 1;
+
+        while (k <= n) {
+            std::size_t left_size = subtree_size(2 * k, n);
+            if (count + left_size == sorted_idx) {
+                return k;  // Found it
+            } else if (count + left_size < sorted_idx) {
+                // Target is in right subtree
+                count += left_size + 1;
+                k = 2 * k + 1;
+            } else {
+                // Target is in left subtree
+                k = 2 * k;
+            }
+        }
+
+        return 1;  // Fallback (shouldn't reach here for valid input)
     }
 };
 
