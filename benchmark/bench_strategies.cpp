@@ -50,7 +50,7 @@ static void BM_SearchStrategy(benchmark::State& state) {
         std::uint64_t key = queries[query_idx++ % num_queries];
 
         // Clamp key to valid range start
-        std::size_t approx_pos = std::min(key, data_size - range_size);
+        std::size_t approx_pos = std::min(static_cast<std::size_t>(key), data_size - range_size);
         std::size_t lo = approx_pos;
         std::size_t hi = std::min(approx_pos + range_size, data_size);
 
@@ -97,7 +97,7 @@ static void BM_Throughput(benchmark::State& state) {
     for (auto _ : state) {
         for (std::size_t i = 0; i < batch_size; ++i) {
             std::uint64_t key = queries[i];
-            std::size_t approx_pos = std::min(key, data_size - range_size);
+            std::size_t approx_pos = std::min(static_cast<std::size_t>(key), data_size - range_size);
             std::size_t lo = approx_pos;
             std::size_t hi = std::min(approx_pos + range_size, data_size);
 

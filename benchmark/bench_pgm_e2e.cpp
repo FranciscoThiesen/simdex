@@ -227,7 +227,7 @@ static void BM_Distribution(benchmark::State& state, DataGenerator gen) {
 }
 
 BENCHMARK_CAPTURE(BM_Distribution, contiguous, generate_contiguous)->Unit(benchmark::kMillisecond);
-BENCHMARK_CAPTURE(BM_Distribution, random, generate_random_unique)->Unit(benchmark::kMillisecond);
-BENCHMARK_CAPTURE(BM_Distribution, clustered, generate_clustered)->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_Distribution, random, [](std::size_t s) { return generate_random_unique(s); })->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_Distribution, clustered, [](std::size_t s) { return generate_clustered(s); })->Unit(benchmark::kMillisecond);
 
 } // namespace
