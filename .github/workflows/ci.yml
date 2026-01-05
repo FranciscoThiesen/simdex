@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:  # Allow manual trigger for benchmarks
+
+jobs:
+  build-linux-x86:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Install dependencies
+        run: |
+          ./vcpkg/vcpkg install gtest benchmark
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Run Benchmarks (x86 AVX2)
+        run: |
+          echo "=== CPU Info ==="
+          lscpu | grep -E "(Model name|CPU\(s\)|Thread|Cache|flag)" | head -20
+          echo ""
+          echo "=== Crossover Analysis (where does SIMD win?) ==="
+          ./build/benchmark/bench_crossover --benchmark_format=console
+          echo ""
+          echo "=== Strategy Micro-benchmarks ==="
+          ./build/benchmark/bench_strategies --benchmark_format=console
+          echo ""
+          echo "=== PGM End-to-End Benchmarks ==="
+          ./build/benchmark/bench_pgm_e2e --benchmark_format=console
+
+      - name: Save benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-linux-x86
+          path: |
+            build/benchmark/*.json
+        if: always()
+
+  build-macos-arm:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Install dependencies
+        run: |
+          ./vcpkg/vcpkg install gtest benchmark
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Run Benchmarks (ARM NEON)
+        run: |
+          echo "=== CPU Info ==="
+          sysctl -n machdep.cpu.brand_string || echo "Apple Silicon"
+          echo ""
+          echo "=== Crossover Analysis (where does SIMD win?) ==="
+          ./build/benchmark/bench_crossover --benchmark_format=console
+          echo ""
+          echo "=== Strategy Micro-benchmarks ==="
+          ./build/benchmark/bench_strategies --benchmark_format=console
+          echo ""
+          echo "=== PGM End-to-End Benchmarks ==="
+          ./build/benchmark/bench_pgm_e2e --benchmark_format=console
