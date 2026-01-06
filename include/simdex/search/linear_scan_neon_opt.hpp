@@ -15,7 +15,12 @@
 #include "simdex/simd/platform.hpp"
 
 #if defined(SIMDEX_HAS_NEON)
+// Include arm_neon.h BEFORE any namespace declarations to avoid
+// collision with Apple's simd:: namespace on newer Xcode versions
 #include <arm_neon.h>
+
+// Use explicit global namespace types to avoid simd:: collision
+using neon_u64x2 = ::neon_u64x2;
 
 namespace simdex {
 
@@ -50,36 +55,36 @@ public:
         const std::uint64_t* end = data + hi;
 
         // Broadcast key to all lanes
-        uint64x2_t vkey = vdupq_n_u64(key);
+        neon_u64x2 vkey = vdupq_n_u64(key);
 
         // === Main loop: 8 elements per iteration ===
         // This amortizes the "any match" check over 8 elements
         while (ptr + 8 <= end) {
             // Load 4 vectors (8 elements total)
-            uint64x2_t v0 = vld1q_u64(ptr);
-            uint64x2_t v1 = vld1q_u64(ptr + 2);
-            uint64x2_t v2 = vld1q_u64(ptr + 4);
-            uint64x2_t v3 = vld1q_u64(ptr + 6);
+            neon_u64x2 v0 = vld1q_u64(ptr);
+            neon_u64x2 v1 = vld1q_u64(ptr + 2);
+            neon_u64x2 v2 = vld1q_u64(ptr + 4);
+            neon_u64x2 v3 = vld1q_u64(ptr + 6);
 
             // Compare: find where element >= key (i.e., NOT(key > element))
             // vcgtq_u64 returns all 1s where a > b
-            uint64x2_t gt0 = vcgtq_u64(vkey, v0);  // key > v0[i] ?
-            uint64x2_t gt1 = vcgtq_u64(vkey, v1);
-            uint64x2_t gt2 = vcgtq_u64(vkey, v2);
-            uint64x2_t gt3 = vcgtq_u64(vkey, v3);
+            neon_u64x2 gt0 = vcgtq_u64(vkey, v0);  // key > v0[i] ?
+            neon_u64x2 gt1 = vcgtq_u64(vkey, v1);
+            neon_u64x2 gt2 = vcgtq_u64(vkey, v2);
+            neon_u64x2 gt3 = vcgtq_u64(vkey, v3);
 
             // We want first position where key <= element
             // That's where gt[i] is 0 (NOT greater)
             // Invert: ge[i] = 1 where key <= element
-            uint64x2_t ge0 = vmvnq_u64(gt0);  // NOT(key > v) = (key <= v)
-            uint64x2_t ge1 = vmvnq_u64(gt1);
-            uint64x2_t ge2 = vmvnq_u64(gt2);
-            uint64x2_t ge3 = vmvnq_u64(gt3);
+            neon_u64x2 ge0 = vmvnq_u64(gt0);  // NOT(key > v) = (key <= v)
+            neon_u64x2 ge1 = vmvnq_u64(gt1);
+            neon_u64x2 ge2 = vmvnq_u64(gt2);
+            neon_u64x2 ge3 = vmvnq_u64(gt3);
 
             // OR together: any_match[i] = 1 if ANY of the 8 positions matched
-            uint64x2_t any01 = vorrq_u64(ge0, ge1);
-            uint64x2_t any23 = vorrq_u64(ge2, ge3);
-            uint64x2_t any = vorrq_u64(any01, any23);
+            neon_u64x2 any01 = vorrq_u64(ge0, ge1);
+            neon_u64x2 any23 = vorrq_u64(ge2, ge3);
+            neon_u64x2 any = vorrq_u64(any01, any23);
 
             // Check if ANY lane in 'any' is non-zero
             // vmaxvq_u64 returns max of all lanes as scalar
@@ -119,13 +124,13 @@ public:
 
         // === Secondary loop: 4 elements per iteration ===
         while (ptr + 4 <= end) {
-            uint64x2_t v0 = vld1q_u64(ptr);
-            uint64x2_t v1 = vld1q_u64(ptr + 2);
+            neon_u64x2 v0 = vld1q_u64(ptr);
+            neon_u64x2 v1 = vld1q_u64(ptr + 2);
 
-            uint64x2_t ge0 = vmvnq_u64(vcgtq_u64(vkey, v0));
-            uint64x2_t ge1 = vmvnq_u64(vcgtq_u64(vkey, v1));
+            neon_u64x2 ge0 = vmvnq_u64(vcgtq_u64(vkey, v0));
+            neon_u64x2 ge1 = vmvnq_u64(vcgtq_u64(vkey, v1));
 
-            uint64x2_t any = vorrq_u64(ge0, ge1);
+            neon_u64x2 any = vorrq_u64(ge0, ge1);
 
             if (vmaxvq_u64(any) != 0) {
                 if (vmaxvq_u64(ge0) != 0) {
@@ -142,8 +147,8 @@ public:
 
         // === Tertiary loop: 2 elements per iteration ===
         while (ptr + 2 <= end) {
-            uint64x2_t v = vld1q_u64(ptr);
-            uint64x2_t ge = vmvnq_u64(vcgtq_u64(vkey, v));
+            neon_u64x2 v = vld1q_u64(ptr);
+            neon_u64x2 ge = vmvnq_u64(vcgtq_u64(vkey, v));
 
             if (vmaxvq_u64(ge) != 0) {
                 if (vgetq_lane_u64(ge, 0)) return ptr;
