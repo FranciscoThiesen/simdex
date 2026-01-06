@@ -91,6 +91,9 @@ jobs:
           echo "=== CPU Info ==="
           sysctl -n machdep.cpu.brand_string || echo "Apple Silicon"
           echo ""
+          echo "=== NEON Optimization Comparison ==="
+          ./build/benchmark/bench_neon_opt --benchmark_format=console
+          echo ""
           echo "=== Crossover Analysis (where does SIMD win?) ==="
           ./build/benchmark/bench_crossover --benchmark_format=console
           echo ""
