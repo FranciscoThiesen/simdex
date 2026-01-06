@@ -13,7 +13,3 @@ target_link_libraries(bench_pgm_e2e PRIVATE simdex benchmark::benchmark benchmar
 # Crossover point analysis
 add_executable(bench_crossover bench_crossover.cpp)
 target_link_libraries(bench_crossover PRIVATE simdex benchmark::benchmark benchmark::benchmark_main)
-
-# NEON optimization comparison (ARM only, but builds on all platforms)
-add_executable(bench_neon_opt bench_neon_opt.cpp)
-target_link_libraries(bench_neon_opt PRIVATE simdex benchmark::benchmark benchmark::benchmark_main)
