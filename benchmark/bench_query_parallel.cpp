@@ -47,6 +47,22 @@ std::vector<std::uint64_t> generate_queries(
     return queries;
 }
 
+// Overload for pointer-based data (used with index.data())
+std::vector<std::uint64_t> generate_queries(
+    const std::uint64_t* begin,
+    const std::uint64_t* end,
+    std::size_t count
+) {
+    std::size_t size = static_cast<std::size_t>(end - begin);
+    std::mt19937_64 rng(999);
+    std::uniform_int_distribution<std::size_t> dist(0, size - 1);
+    std::vector<std::uint64_t> queries(count);
+    for (auto& q : queries) {
+        q = begin[dist(rng)];
+    }
+    return queries;
+}
+
 // ============================================================================
 // Baseline: Sequential single-query processing
 // ============================================================================
@@ -64,7 +80,7 @@ static void BM_Sequential(benchmark::State& state) {
         std::size_t sum = 0;
         for (const auto& key : queries) {
             auto it = index.lower_bound(key);
-            sum += (it - index.begin());
+            sum += static_cast<std::size_t>(it - index.begin());
         }
         benchmark::DoNotOptimize(sum);
     }
@@ -142,7 +158,7 @@ static void BM_Direct_Sequential_4(benchmark::State& state) {
         std::size_t sum = 0;
         for (const auto& key : queries) {
             auto it = index.lower_bound(key);
-            sum += (it - index.begin());
+            sum += static_cast<std::size_t>(it - index.begin());
         }
         benchmark::DoNotOptimize(sum);
     }
@@ -182,22 +198,6 @@ static void BM_Direct_QueryParallel_4(benchmark::State& state) {
 
     state.SetItemsProcessed(static_cast<int64_t>(state.iterations() * 4));
     state.SetLabel("parallel_4");
-}
-
-// Helper for direct test
-std::vector<std::uint64_t> generate_queries(
-    const std::uint64_t* begin,
-    const std::uint64_t* end,
-    std::size_t count
-) {
-    std::size_t size = static_cast<std::size_t>(end - begin);
-    std::mt19937_64 rng(999);
-    std::uniform_int_distribution<std::size_t> dist(0, size - 1);
-    std::vector<std::uint64_t> queries(count);
-    for (auto& q : queries) {
-        q = begin[dist(rng)];
-    }
-    return queries;
 }
 
 // ============================================================================
@@ -282,7 +282,7 @@ static void BM_Throughput_Sequential(benchmark::State& state) {
         std::size_t sum = 0;
         for (const auto& key : queries) {
             auto it = index.lower_bound(key);
-            sum += (it - index.begin());
+            sum += static_cast<std::size_t>(it - index.begin());
         }
         benchmark::DoNotOptimize(sum);
     }
