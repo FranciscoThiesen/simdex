@@ -17,3 +17,7 @@ target_link_libraries(bench_crossover PRIVATE simdex benchmark::benchmark benchm
 # Batched query processing benchmarks (novel contribution)
 add_executable(bench_batch bench_batch.cpp)
 target_link_libraries(bench_batch PRIVATE simdex benchmark::benchmark benchmark::benchmark_main)
+
+# Query-parallel SIMD benchmarks (hail-mary approach)
+add_executable(bench_query_parallel bench_query_parallel.cpp)
+target_link_libraries(bench_query_parallel PRIVATE simdex benchmark::benchmark benchmark::benchmark_main)

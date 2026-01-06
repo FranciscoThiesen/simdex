@@ -18,6 +18,7 @@
 #include "simdex/search/eytzinger.hpp"
 #include "simdex/index/simd_pgm_index.hpp"
 #include "simdex/index/batch_query.hpp"
+#include "simdex/search/parallel_queries.hpp"
 
 // Version information
 #define SIMDEX_VERSION_MAJOR 0

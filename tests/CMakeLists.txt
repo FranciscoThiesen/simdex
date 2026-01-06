@@ -21,3 +21,8 @@ add_test(NAME test_pgm_integration COMMAND test_pgm_integration)
 add_executable(test_batch_query test_batch_query.cpp)
 target_link_libraries(test_batch_query PRIVATE simdex GTest::gtest GTest::gtest_main)
 add_test(NAME test_batch_query COMMAND test_batch_query)
+
+# Query-parallel SIMD tests
+add_executable(test_parallel_queries test_parallel_queries.cpp)
+target_link_libraries(test_parallel_queries PRIVATE simdex GTest::gtest GTest::gtest_main)
+add_test(NAME test_parallel_queries COMMAND test_parallel_queries)

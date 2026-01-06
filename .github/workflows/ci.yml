@@ -51,8 +51,11 @@ jobs:
           echo "=== PGM End-to-End Benchmarks ==="
           ./build/benchmark/bench_pgm_e2e --benchmark_format=console
           echo ""
-          echo "=== Batched Query Processing (Novel Contribution) ==="
+          echo "=== Batched Query Processing ==="
           ./build/benchmark/bench_batch --benchmark_format=console
+          echo ""
+          echo "=== Query-Parallel SIMD (Hail Mary) ==="
+          ./build/benchmark/bench_query_parallel --benchmark_format=console
 
       - name: Save benchmark results
         uses: actions/upload-artifact@v4
@@ -104,5 +107,8 @@ jobs:
           echo "=== PGM End-to-End Benchmarks ==="
           ./build/benchmark/bench_pgm_e2e --benchmark_format=console
           echo ""
-          echo "=== Batched Query Processing (Novel Contribution) ==="
+          echo "=== Batched Query Processing ==="
           ./build/benchmark/bench_batch --benchmark_format=console
+          echo ""
+          echo "=== Query-Parallel SIMD (Hail Mary) ==="
+          ./build/benchmark/bench_query_parallel --benchmark_format=console
