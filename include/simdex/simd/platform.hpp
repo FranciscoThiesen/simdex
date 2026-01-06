@@ -3,6 +3,15 @@
 /// @file platform.hpp
 /// @brief Platform detection and SIMD capability macros
 
+// Include SIMD headers OUTSIDE of namespace to keep types in global scope
+#if defined(SIMDEX_HAS_AVX512) || defined(SIMDEX_HAS_AVX2)
+    #include <immintrin.h>
+#endif
+
+#if defined(SIMDEX_HAS_NEON)
+    #include <arm_neon.h>
+#endif
+
 namespace simdex::simd {
 
 // Platform detection tags
@@ -15,11 +24,9 @@ struct neon_tag {};
 // These are set by CMake based on detected capabilities
 
 #if defined(SIMDEX_HAS_AVX512)
-    #include <immintrin.h>
     inline constexpr bool has_avx512 = true;
     inline constexpr bool has_avx2 = true;  // AVX-512 implies AVX2
 #elif defined(SIMDEX_HAS_AVX2)
-    #include <immintrin.h>
     inline constexpr bool has_avx512 = false;
     inline constexpr bool has_avx2 = true;
 #else
@@ -28,7 +35,6 @@ struct neon_tag {};
 #endif
 
 #if defined(SIMDEX_HAS_NEON)
-    #include <arm_neon.h>
     inline constexpr bool has_neon = true;
 #else
     inline constexpr bool has_neon = false;
