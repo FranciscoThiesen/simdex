@@ -28,6 +28,7 @@ jobs:
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
+            -DSIMDEX_ENABLE_AVX512=OFF \
             -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
 
       - name: Build
@@ -49,6 +50,9 @@ jobs:
           echo ""
           echo "=== PGM End-to-End Benchmarks ==="
           ./build/benchmark/bench_pgm_e2e --benchmark_format=console
+          echo ""
+          echo "=== Batched Query Processing (Novel Contribution) ==="
+          ./build/benchmark/bench_batch --benchmark_format=console
 
       - name: Save benchmark results
         uses: actions/upload-artifact@v4
@@ -99,3 +103,6 @@ jobs:
           echo ""
           echo "=== PGM End-to-End Benchmarks ==="
           ./build/benchmark/bench_pgm_e2e --benchmark_format=console
+          echo ""
+          echo "=== Batched Query Processing (Novel Contribution) ==="
+          ./build/benchmark/bench_batch --benchmark_format=console

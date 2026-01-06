@@ -12,6 +12,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Options
 option(SIMDEX_BUILD_TESTS "Build tests" ON)
 option(SIMDEX_BUILD_BENCHMARKS "Build benchmarks" ON)
+option(SIMDEX_ENABLE_AVX512 "Enable AVX-512 support" ON)
 option(SIMDEX_ENABLE_AVX2 "Enable AVX2 support" ON)
 option(SIMDEX_ENABLE_NEON "Enable ARM NEON support" ON)
 
@@ -20,7 +21,21 @@ include(CheckCXXCompilerFlag)
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|amd64)")
     set(SIMDEX_IS_X86_64 TRUE)
-    if(SIMDEX_ENABLE_AVX2)
+
+    # Check for AVX-512 first (higher priority)
+    if(SIMDEX_ENABLE_AVX512)
+        check_cxx_compiler_flag("-mavx512f -mavx512bw -mavx512dq -mavx512vl" COMPILER_SUPPORTS_AVX512)
+        if(COMPILER_SUPPORTS_AVX512)
+            add_compile_options(-mavx512f -mavx512bw -mavx512dq -mavx512vl)
+            add_compile_definitions(SIMDEX_HAS_AVX512=1)
+            add_compile_definitions(SIMDEX_HAS_AVX2=1)  # AVX-512 implies AVX2
+            message(STATUS "AVX-512 support enabled (includes AVX2)")
+            set(SIMDEX_AVX512_ENABLED TRUE)
+        endif()
+    endif()
+
+    # Fall back to AVX2 if AVX-512 not available
+    if(NOT SIMDEX_AVX512_ENABLED AND SIMDEX_ENABLE_AVX2)
         check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
         if(COMPILER_SUPPORTS_AVX2)
             add_compile_options(-mavx2)

@@ -17,6 +17,7 @@
 #include "simdex/search/kary_search.hpp"
 #include "simdex/search/eytzinger.hpp"
 #include "simdex/index/simd_pgm_index.hpp"
+#include "simdex/index/batch_query.hpp"
 
 // Version information
 #define SIMDEX_VERSION_MAJOR 0
@@ -32,7 +33,9 @@ inline constexpr const char* version() noexcept {
 
 /// @brief Get platform information string
 inline const char* platform_info() noexcept {
-#if defined(SIMDEX_HAS_AVX2)
+#if defined(SIMDEX_HAS_AVX512)
+    return "x86_64 with AVX-512";
+#elif defined(SIMDEX_HAS_AVX2)
     return "x86_64 with AVX2";
 #elif defined(SIMDEX_HAS_NEON)
     return "ARM64 with NEON";

@@ -16,3 +16,8 @@ add_test(NAME test_search_strategies COMMAND test_search_strategies)
 add_executable(test_pgm_integration test_pgm_integration.cpp)
 target_link_libraries(test_pgm_integration PRIVATE simdex GTest::gtest GTest::gtest_main)
 add_test(NAME test_pgm_integration COMMAND test_pgm_integration)
+
+# Batched query processing tests
+add_executable(test_batch_query test_batch_query.cpp)
+target_link_libraries(test_batch_query PRIVATE simdex GTest::gtest GTest::gtest_main)
+add_test(NAME test_batch_query COMMAND test_batch_query)

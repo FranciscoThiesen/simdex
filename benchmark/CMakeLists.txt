@@ -13,3 +13,7 @@ target_link_libraries(bench_pgm_e2e PRIVATE simdex benchmark::benchmark benchmar
 # Crossover point analysis
 add_executable(bench_crossover bench_crossover.cpp)
 target_link_libraries(bench_crossover PRIVATE simdex benchmark::benchmark benchmark::benchmark_main)
+
+# Batched query processing benchmarks (novel contribution)
+add_executable(bench_batch bench_batch.cpp)
+target_link_libraries(bench_batch PRIVATE simdex benchmark::benchmark benchmark::benchmark_main)

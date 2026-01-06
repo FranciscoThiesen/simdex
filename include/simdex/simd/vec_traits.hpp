@@ -139,6 +139,107 @@ struct vec_traits<std::uint32_t, avx2_tag> {
 #endif // SIMDEX_HAS_AVX2
 
 // ============================================================================
+// AVX-512 implementation (512-bit vectors)
+// ============================================================================
+
+#if defined(SIMDEX_HAS_AVX512)
+
+/// @brief AVX-512 traits for 64-bit unsigned integers
+/// 8 lanes for uint64 - double the parallelism of AVX2
+template<>
+struct vec_traits<std::uint64_t, avx512_tag> {
+    using vector_type = __m512i;
+
+    static constexpr std::size_t lanes = 8;  // 512 bits / 64 bits
+    static constexpr std::size_t alignment = 64;
+
+    /// @brief Unaligned load of 8 x uint64_t
+    static vector_type load(const std::uint64_t* ptr) noexcept {
+        return _mm512_loadu_si512(reinterpret_cast<const __m512i*>(ptr));
+    }
+
+    /// @brief Aligned load (ptr must be 64-byte aligned)
+    static vector_type load_aligned(const std::uint64_t* ptr) noexcept {
+        return _mm512_load_si512(reinterpret_cast<const __m512i*>(ptr));
+    }
+
+    /// @brief Broadcast single value to all 8 lanes
+    static vector_type broadcast(std::uint64_t val) noexcept {
+        return _mm512_set1_epi64(static_cast<std::int64_t>(val));
+    }
+
+    /// @brief Compare a > b using AVX-512 mask comparison
+    /// Returns a vector with all 1s in lanes where a > b
+    static vector_type cmpgt(vector_type a, vector_type b) noexcept {
+        // AVX-512 has native mask comparison, but we need a vector result
+        // for compatibility with our movemask interface
+        __mmask8 mask = _mm512_cmpgt_epi64_mask(a, b);
+        return _mm512_maskz_set1_epi64(mask, ~0ULL);
+    }
+
+    /// @brief Extract comparison results as 8-bit mask
+    /// More efficient than AVX2 because AVX-512 has native mask support
+    static int movemask(vector_type v) noexcept {
+        // Convert to mask by comparing with zero
+        __mmask8 mask = _mm512_test_epi64_mask(v, v);
+        return static_cast<int>(mask);
+    }
+
+    /// @brief Direct mask comparison (AVX-512 native operation)
+    /// More efficient than cmpgt + movemask for search operations
+    static int cmpgt_mask(vector_type a, vector_type b) noexcept {
+        return static_cast<int>(_mm512_cmpgt_epi64_mask(a, b));
+    }
+
+    /// @brief Compare less-than-or-equal (for lower_bound)
+    static int cmple_mask(vector_type a, vector_type b) noexcept {
+        return static_cast<int>(_mm512_cmple_epi64_mask(a, b));
+    }
+};
+
+/// @brief AVX-512 traits for 32-bit unsigned integers
+/// 16 lanes for uint32 - 4x more parallelism than AVX2 for 32-bit
+template<>
+struct vec_traits<std::uint32_t, avx512_tag> {
+    using vector_type = __m512i;
+
+    static constexpr std::size_t lanes = 16;  // 512 bits / 32 bits
+    static constexpr std::size_t alignment = 64;
+
+    static vector_type load(const std::uint32_t* ptr) noexcept {
+        return _mm512_loadu_si512(reinterpret_cast<const __m512i*>(ptr));
+    }
+
+    static vector_type load_aligned(const std::uint32_t* ptr) noexcept {
+        return _mm512_load_si512(reinterpret_cast<const __m512i*>(ptr));
+    }
+
+    static vector_type broadcast(std::uint32_t val) noexcept {
+        return _mm512_set1_epi32(static_cast<std::int32_t>(val));
+    }
+
+    static vector_type cmpgt(vector_type a, vector_type b) noexcept {
+        __mmask16 mask = _mm512_cmpgt_epi32_mask(a, b);
+        return _mm512_maskz_set1_epi32(mask, ~0U);
+    }
+
+    static int movemask(vector_type v) noexcept {
+        __mmask16 mask = _mm512_test_epi32_mask(v, v);
+        return static_cast<int>(mask);
+    }
+
+    static int cmpgt_mask(vector_type a, vector_type b) noexcept {
+        return static_cast<int>(_mm512_cmpgt_epi32_mask(a, b));
+    }
+
+    static int cmple_mask(vector_type a, vector_type b) noexcept {
+        return static_cast<int>(_mm512_cmple_epi32_mask(a, b));
+    }
+};
+
+#endif // SIMDEX_HAS_AVX512
+
+// ============================================================================
 // ARM NEON implementation (128-bit vectors)
 // ============================================================================
 

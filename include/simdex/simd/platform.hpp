@@ -8,15 +8,22 @@ namespace simdex::simd {
 // Platform detection tags
 struct scalar_tag {};
 struct avx2_tag {};
+struct avx512_tag {};
 struct neon_tag {};
 
 // Compile-time platform detection
 // These are set by CMake based on detected capabilities
 
-#if defined(SIMDEX_HAS_AVX2)
+#if defined(SIMDEX_HAS_AVX512)
     #include <immintrin.h>
+    inline constexpr bool has_avx512 = true;
+    inline constexpr bool has_avx2 = true;  // AVX-512 implies AVX2
+#elif defined(SIMDEX_HAS_AVX2)
+    #include <immintrin.h>
+    inline constexpr bool has_avx512 = false;
     inline constexpr bool has_avx2 = true;
 #else
+    inline constexpr bool has_avx512 = false;
     inline constexpr bool has_avx2 = false;
 #endif
 
@@ -28,7 +35,9 @@ struct neon_tag {};
 #endif
 
 // Select the best available platform at compile time
-#if defined(SIMDEX_HAS_AVX2)
+#if defined(SIMDEX_HAS_AVX512)
+    using default_platform = avx512_tag;
+#elif defined(SIMDEX_HAS_AVX2)
     using default_platform = avx2_tag;
 #elif defined(SIMDEX_HAS_NEON)
     using default_platform = neon_tag;
@@ -54,10 +63,13 @@ template<typename Platform>
 using resolve_platform_t = typename resolve_platform<Platform>::type;
 
 // SIMD vector width in bytes
+inline constexpr std::size_t avx512_vector_bytes = 64;
 inline constexpr std::size_t avx2_vector_bytes = 32;
 inline constexpr std::size_t neon_vector_bytes = 16;
 
-#if defined(SIMDEX_HAS_AVX2)
+#if defined(SIMDEX_HAS_AVX512)
+    inline constexpr std::size_t default_vector_bytes = avx512_vector_bytes;
+#elif defined(SIMDEX_HAS_AVX2)
     inline constexpr std::size_t default_vector_bytes = avx2_vector_bytes;
 #elif defined(SIMDEX_HAS_NEON)
     inline constexpr std::size_t default_vector_bytes = neon_vector_bytes;
