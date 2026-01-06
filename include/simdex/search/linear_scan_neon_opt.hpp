@@ -19,10 +19,11 @@
 // collision with Apple's simd:: namespace on newer Xcode versions
 #include <arm_neon.h>
 
-// Use explicit global namespace types to avoid simd:: collision
-using neon_u64x2 = ::neon_u64x2;
-
 namespace simdex {
+
+// Type alias to avoid collision with Apple's simd:: namespace
+// arm_neon.h must be included before this to ensure types are in global namespace
+using neon_u64x2 = uint64x2_t;
 
 /// @brief Optimized NEON linear scan for 64-bit keys
 ///
